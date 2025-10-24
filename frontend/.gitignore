@@ -1,0 +1,5 @@
+.vscode/
+# Ignore dependencies and Vite build cache
+node_modules/
+node_modules/.vite/
+.vite/
