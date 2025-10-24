@@ -1,6 +1,0 @@
-{
-  // Ignore unknown at-rules like @tailwind so the editor doesn't flag Tailwind directives as errors
-  "css.lint.unknownAtRules": "ignore",
-  "less.lint.unknownAtRules": "ignore",
-  "scss.lint.unknownAtRules": "ignore"
-}
