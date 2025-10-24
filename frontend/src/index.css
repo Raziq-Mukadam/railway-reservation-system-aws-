@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+/* simple background for hero fallback */
+.hero-bg {
+  /* Web-sourced express train photo (Unsplash source endpoint) */
+  /* Use a local image placed in frontend/public/train.jpg for a consistent hero image. Falls back to Unsplash if not present. */
+  background-image: linear-gradient(90deg, rgba(0,0,0,0.25), rgba(0,0,0,0.15)), url('/train.jpg');
+  background-size: cover;
+  background-position: center;
+}

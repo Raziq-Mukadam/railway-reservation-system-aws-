@@ -1,0 +1,9 @@
+{
+  "name": "railway-reservation-system-root",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:frontend": "npm --prefix frontend install",
+    "start": "npm run dev:frontend"
+  }
+}
