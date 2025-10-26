@@ -1,0 +1,22 @@
+{
+  "name": "railway-reservation-backend",
+  "version": "1.0.0",
+  "description": "AWS backend for Railway Reservation System",
+  "scripts": {
+    "install-deps": "cd src/handlers/searchTrains && npm install && cd ../booking && npm install && cd ../getBookings && npm install && cd ../cancelBooking && npm install",
+    "build": "sam build",
+    "deploy": "sam deploy --guided",
+    "deploy-prod": "sam deploy --config-env prod",
+    "local": "sam local start-api",
+    "logs": "sam logs --tail",
+    "validate": "sam validate"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "railway",
+    "reservation"
+  ],
+  "author": "",
+  "license": "MIT"
+}

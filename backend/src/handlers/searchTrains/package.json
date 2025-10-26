@@ -1,0 +1,9 @@
+{
+  "name": "search-trains-handler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-rds-data": "^3.400.0",
+    "mysql2": "^3.6.0"
+  }
+}

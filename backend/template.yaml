@@ -1,0 +1,240 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Railway Reservation System - AWS Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        TRAINS_DB_HOST: !Ref DBHost
+        TRAINS_DB_NAME: !Ref DBName
+        TRAINS_DB_USER: !Ref DBUser
+        TRAINS_DB_PASSWORD: !Ref DBPassword
+        SESSIONS_TABLE: !Ref SessionsTable
+        BOOKINGS_TABLE: !Ref BookingsTable
+        SNS_TOPIC_ARN: !Ref BookingNotificationsTopic
+
+Parameters:
+  DBHost:
+    Type: String
+    Description: RDS endpoint for trains and tickets database
+    Default: 'localhost'
+  DBName:
+    Type: String
+    Default: 'railway_db'
+  DBUser:
+    Type: String
+    Default: 'admin'
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Default: 'changeme'
+  PaymentGatewayEndpoint:
+    Type: String
+    Description: External payment gateway API endpoint
+    Default: 'https://payment-gateway.example.com/api'
+
+Resources:
+  # API Gateway
+  RailwayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: railway-users
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: false
+        - Name: name
+          Required: true
+          Mutable: true
+        - Name: phone_number
+          Required: false
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: railway-web-client
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # DynamoDB Tables
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: railway-sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  BookingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: railway-bookings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pnr
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pnr
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: userId-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # SNS Topic for notifications
+  BookingNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: railway-booking-notifications
+      DisplayName: Railway Booking Notifications
+
+  # Lambda Functions
+  SearchTrainsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/searchTrains/
+      Handler: index.handler
+      Events:
+        SearchApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RailwayApi
+            Path: /trains/search
+            Method: get
+            Auth:
+              Authorizer: NONE
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionsTable
+
+  BookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/booking/
+      Handler: index.handler
+      Environment:
+        Variables:
+          PAYMENT_GATEWAY_ENDPOINT: !Ref PaymentGatewayEndpoint
+      Events:
+        BookingApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RailwayApi
+            Path: /bookings
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BookingsTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt BookingNotificationsTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
+
+  GetBookingsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/getBookings/
+      Handler: index.handler
+      Events:
+        GetBookingsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RailwayApi
+            Path: /bookings
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref BookingsTable
+
+  CancelBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/cancelBooking/
+      Handler: index.handler
+      Events:
+        CancelBookingApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RailwayApi
+            Path: /bookings/{pnr}
+            Method: delete
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BookingsTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt BookingNotificationsTopic.TopicName
+
+  # CloudWatch Log Groups
+  SearchTrainsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SearchTrainsFunction}
+      RetentionInDays: 7
+
+  BookingFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BookingFunction}
+      RetentionInDays: 30
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${RailwayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+  SessionsTableName:
+    Description: DynamoDB Sessions Table
+    Value: !Ref SessionsTable
+  BookingsTableName:
+    Description: DynamoDB Bookings Table
+    Value: !Ref BookingsTable

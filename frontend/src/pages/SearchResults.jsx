@@ -3,12 +3,8 @@ import { useLocation } from 'react-router-dom'
 import TrainCard from '../components/TrainCard'
 import BookingModal from '../components/BookingModal'
 import Spinner from '../components/Spinner'
-
-const sampleTrains = [
-  {name: 'Express A', number: '12001', departure: '08:00', arrival: '14:00', duration: '6h', fare: 750, seats: 12},
-  {name: 'Intercity B', number: '12022', departure: '10:30', arrival: '16:30', duration: '6h', fare: 850, seats: 5},
-  {name: 'Nightliner', number: '12033', departure: '22:00', arrival: '06:00', duration: '8h', fare: 600, seats: 20},
-]
+import { searchTrains } from '../utils/api'
+import { toast } from 'react-toastify'
 
 function useQuery(){
   return new URLSearchParams(useLocation().search)
@@ -21,21 +17,41 @@ export default function SearchResults(){
   const [selected, setSelected] = useState(null)
 
   useEffect(()=>{
-    setLoading(true)
-    // simulate search delay
-    const t = setTimeout(()=>{
-      // In a real app, use params from q to filter
-      setTrains(sampleTrains.map(t=> ({...t, date: q.get('date') || new Date().toISOString().slice(0,10)})))
-      setLoading(false)
-    }, 700)
-    return ()=>clearTimeout(t)
+    async function fetchTrains() {
+      setLoading(true)
+      try {
+        const from = q.get('from')
+        const to = q.get('to')
+        const date = q.get('date') || new Date().toISOString().slice(0,10)
+        
+        if (!from || !to) {
+          toast.error('Please specify departure and arrival stations')
+          setLoading(false)
+          return
+        }
+
+        const results = await searchTrains(from, to, date)
+        console.log('API Response:', results)
+        console.log('Setting trains:', results)
+        setTrains(results)
+      } catch (error) {
+        console.error('Failed to search trains:', error)
+        toast.error('Failed to search trains. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTrains()
   }, [useLocation().search])
 
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold">Search Results</h2>
+      <p className="text-sm text-gray-600">Found {trains.length} trains</p>
       {loading ? <Spinner/> : (
         <div className="space-y-3">
+          {trains.length === 0 && <p className="text-gray-500">No trains found</p>}
           {trains.map(t=> (
             <TrainCard key={t.number} train={t} onBook={setSelected} />
           ))}
