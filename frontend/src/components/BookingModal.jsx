@@ -7,11 +7,24 @@ export default function BookingModal({train, onClose, onConfirm}){
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('Male')
   const [seatPref, setSeatPref] = useState('Lower')
+  const [trainClass, setTrainClass] = useState('Sleeper')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [paymentMode, setPaymentMode] = useState('') // 'online' or 'offline'
   const [showQR, setShowQR] = useState(false)
-  const fare = train?.fare || 0
+  
+  // Calculate fare based on base fare and class multiplier
+  const baseFare = train?.fare || 0
+  const classMultiplier = {
+    'Sleeper': 1,
+    'AC 3-Tier': 2,
+    'AC 2-Tier': 2.5,
+    'AC 1-Tier': 3.5,
+    'First Class': 4
+  }
+  const fare = Math.round(baseFare * (classMultiplier[trainClass] || 1))
 
   if(!train) return null
 
@@ -19,6 +32,15 @@ export default function BookingModal({train, onClose, onConfirm}){
     // Validate form first
     if (!name || !age) {
       toast.error('Please fill all passenger details')
+      return
+    }
+    
+    // Validate travel date is not in the past
+    const travelDate = train.date || new Date().toISOString().slice(0,10)
+    const today = new Date().toISOString().slice(0,10)
+    
+    if (travelDate < today) {
+      toast.error('Cannot book tickets for past dates. Please search for a future date.')
       return
     }
     
@@ -47,11 +69,45 @@ export default function BookingModal({train, onClose, onConfirm}){
         passengerAge: parseInt(age),
         passengerGender: gender,
         seatPreference: seatPref,
+        trainClass: trainClass,
         fare: fare,
         paymentStatus: status
       }
 
       const result = await createBooking(bookingData)
+      
+      // Send notification if email or phone provided
+      if (email || phone) {
+        try {
+          const notificationData = {
+            booking: {
+              pnr: result.pnr,
+              passengerName: name,
+              trainName: train.name,
+              trainNumber: train.number,
+              from: train.from,
+              to: train.to,
+              travelDate: train.date || new Date().toISOString().slice(0,10),
+              trainClass: trainClass,
+              seatPreference: seatPref,
+              fare: fare,
+              status: status,
+              transactionId: result.transactionId
+            },
+            email: email || undefined,
+            phone: phone || undefined
+          }
+          
+          // Send notification (don't wait for it)
+          fetch(`${import.meta.env.VITE_API_ENDPOINT}/notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(notificationData)
+          }).catch(err => console.log('Notification failed:', err))
+        } catch (err) {
+          console.log('Notification error:', err)
+        }
+      }
       
       if (status === 'PENDING') {
         toast.success(`Booking created — PNR: ${result.pnr}. Payment pending!`)
@@ -127,28 +183,60 @@ export default function BookingModal({train, onClose, onConfirm}){
         </div>
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input required value={name} onChange={e=>setName(e.target.value)} placeholder="Passenger Name" className="p-2 border rounded" />
-            <input required value={age} onChange={e=>setAge(e.target.value)} placeholder="Age" type="number" className="p-2 border rounded" />
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+            <h4 className="font-semibold text-sm mb-2">Passenger Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input required value={name} onChange={e=>setName(e.target.value)} placeholder="Passenger Name" className="p-2 border rounded" />
+              <input required value={age} onChange={e=>setAge(e.target.value)} placeholder="Age" type="number" min="1" max="120" className="p-2 border rounded" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              <select value={gender} onChange={e=>setGender(e.target.value)} className="p-2 border rounded">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email (optional)" className="p-2 border rounded" />
+            </div>
+            <div className="grid grid-cols-1 gap-3 mt-3">
+              <input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Phone with country code (optional, e.g., +919876543210)" className="p-2 border rounded" />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">📧 Email & 📱 Phone are optional but recommended for booking confirmations</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <select value={gender} onChange={e=>setGender(e.target.value)} className="p-2 border rounded">
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-            <select value={seatPref} onChange={e=>setSeatPref(e.target.value)} className="p-2 border rounded">
-              <option>Lower</option>
-              <option>Upper</option>
-              <option>Middle</option>
-              <option>Side Lower</option>
-              <option>Side Upper</option>
-            </select>
+
+          <div className="p-3 bg-green-50 border border-green-200 rounded">
+            <h4 className="font-semibold text-sm mb-2">Travel Preferences</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">Class</label>
+                <select value={trainClass} onChange={e=>setTrainClass(e.target.value)} className="w-full p-2 border rounded">
+                  <option value="Sleeper">Sleeper (1x)</option>
+                  <option value="AC 3-Tier">AC 3-Tier (2x)</option>
+                  <option value="AC 2-Tier">AC 2-Tier (2.5x)</option>
+                  <option value="AC 1-Tier">AC 1-Tier (3.5x)</option>
+                  <option value="First Class">First Class (4x)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">Seat Preference</label>
+                <select value={seatPref} onChange={e=>setSeatPref(e.target.value)} className="w-full p-2 border rounded">
+                  <option value="Lower">Lower</option>
+                  <option value="Upper">Upper</option>
+                  <option value="Middle">Middle</option>
+                  <option value="Side Lower">Side Lower</option>
+                  <option value="Side Upper">Side Upper</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="p-3 bg-gray-50 rounded">
-            <div className="flex justify-between"><span>Fare</span><strong>₹{fare}</strong></div>
-            <div className="text-sm text-gray-500">Total payable at confirmation</div>
+            <div className="flex justify-between text-lg">
+              <span className="font-semibold">Total Fare</span>
+              <strong className="text-indigo-600">₹{fare}</strong>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Base: ₹{baseFare} × {trainClass} multiplier
+            </div>
           </div>
 
           <div className="border-t pt-3">

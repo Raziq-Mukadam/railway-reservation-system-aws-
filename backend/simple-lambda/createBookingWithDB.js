@@ -36,6 +36,7 @@ exports.handler = async (event) => {
       passengerAge,
       passengerGender,
       seatPreference,
+      trainClass,
       fare,
       paymentStatus
     } = body;
@@ -45,6 +46,16 @@ exports.handler = async (event) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Missing required booking details' })
+      };
+    }
+
+    // Validate travel date is not in the past
+    const today = new Date().toISOString().slice(0, 10);
+    if (travelDate && travelDate < today) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Cannot book tickets for past dates' })
       };
     }
 
@@ -64,6 +75,7 @@ exports.handler = async (event) => {
       passengerAge,
       passengerGender,
       seatPreference,
+      trainClass: trainClass || 'Sleeper',
       fare,
       status: status,
       paymentStatus: paymentStatus || 'CONFIRMED',

@@ -1,4 +1,5 @@
 const mockTrains = [
+  // Delhi to Mumbai
   {
     trainId: 1,
     number: '12001',
@@ -9,34 +10,156 @@ const mockTrains = [
     arrival: '14:00',
     duration: '6h',
     seats: 45,
-    fare: 750,
-    class: 'Sleeper'
+    fare: 750
   },
   {
     trainId: 2,
-    number: '12022',
-    name: 'Rajdhani Express',
+    number: '12951',
+    name: 'Mumbai Rajdhani',
     from: 'New Delhi',
-    to: 'Chennai Central',
-    departure: '10:30',
-    arrival: '16:30',
-    duration: '6h',
-    seats: 32,
-    fare: 1200,
-    class: 'AC-3'
+    to: 'Mumbai Central',
+    departure: '16:30',
+    arrival: '08:35',
+    duration: '16h 5m',
+    seats: 38,
+    fare: 1850
   },
   {
     trainId: 3,
-    number: '12033',
-    name: 'Duronto Express',
+    number: '12953',
+    name: 'August Kranti Rajdhani',
+    from: 'New Delhi',
+    to: 'Mumbai Central',
+    departure: '17:55',
+    arrival: '10:15',
+    duration: '16h 20m',
+    seats: 42,
+    fare: 1900
+  },
+  // Delhi to Chennai
+  {
+    trainId: 4,
+    number: '12622',
+    name: 'Tamil Nadu Express',
+    from: 'New Delhi',
+    to: 'Chennai Central',
+    departure: '22:30',
+    arrival: '07:00',
+    duration: '32h 30m',
+    seats: 55,
+    fare: 1200
+  },
+  {
+    trainId: 5,
+    number: '12434',
+    name: 'Chennai Rajdhani',
+    from: 'New Delhi',
+    to: 'Chennai Central',
+    departure: '15:55',
+    arrival: '09:30',
+    duration: '27h 35m',
+    seats: 40,
+    fare: 2100
+  },
+  // Mumbai to Bangalore
+  {
+    trainId: 6,
+    number: '12133',
+    name: 'Mangalore Express',
     from: 'Mumbai Central',
     to: 'Bangalore City',
     departure: '22:00',
     arrival: '06:00',
-    duration: '8h',
-    seats: 28,
-    fare: 850,
-    class: 'AC-2'
+    duration: '24h',
+    seats: 48,
+    fare: 850
+  },
+  {
+    trainId: 7,
+    number: '16529',
+    name: 'Udyan Express',
+    from: 'Mumbai Central',
+    to: 'Bangalore City',
+    departure: '08:05',
+    arrival: '07:30',
+    duration: '23h 25m',
+    seats: 52,
+    fare: 780
+  },
+  // Bangalore to Hyderabad
+  {
+    trainId: 8,
+    number: '12785',
+    name: 'Kacheguda SF Express',
+    from: 'Bangalore City',
+    to: 'Hyderabad',
+    departure: '20:00',
+    arrival: '05:50',
+    duration: '9h 50m',
+    seats: 60,
+    fare: 650
+  },
+  {
+    trainId: 9,
+    number: '12864',
+    name: 'Yesvantpur Express',
+    from: 'Bangalore City',
+    to: 'Hyderabad',
+    departure: '06:00',
+    arrival: '15:30',
+    duration: '9h 30m',
+    seats: 55,
+    fare: 620
+  },
+  // Delhi to Kolkata
+  {
+    trainId: 10,
+    number: '12301',
+    name: 'Howrah Rajdhani',
+    from: 'New Delhi',
+    to: 'Kolkata',
+    departure: '16:55',
+    arrival: '10:05',
+    duration: '17h 10m',
+    seats: 45,
+    fare: 1950
+  },
+  {
+    trainId: 11,
+    number: '12313',
+    name: 'Sealdah Rajdhani',
+    from: 'New Delhi',
+    to: 'Kolkata',
+    departure: '16:35',
+    arrival: '10:35',
+    duration: '18h',
+    seats: 42,
+    fare: 1900
+  },
+  // Mumbai to Delhi
+  {
+    trainId: 12,
+    number: '12952',
+    name: 'New Delhi Rajdhani',
+    from: 'Mumbai Central',
+    to: 'New Delhi',
+    departure: '17:05',
+    arrival: '08:35',
+    duration: '15h 30m',
+    seats: 50,
+    fare: 1850
+  },
+  {
+    trainId: 13,
+    number: '12954',
+    name: 'August Kranti Rajdhani',
+    from: 'Mumbai Central',
+    to: 'New Delhi',
+    departure: '17:25',
+    arrival: '09:55',
+    duration: '16h 30m',
+    seats: 48,
+    fare: 1900
   }
 ];
 
