@@ -46,15 +46,32 @@ export default function SearchResults(){
   }, [useLocation().search])
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">Search Results</h2>
-      <p className="text-sm text-gray-600">Found {trains.length} trains</p>
-      {loading ? <Spinner/> : (
-        <div className="space-y-3">
-          {trains.length === 0 && <p className="text-gray-500">No trains found</p>}
-          {trains.map(t=> (
-            <TrainCard key={t.number} train={t} onBook={setSelected} />
-          ))}
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <h2 className="text-3xl font-bold mb-2">🔍 Search Results</h2>
+        <p className="text-indigo-100">
+          Found <span className="font-bold text-2xl">{trains.length}</span> trains for your journey
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Spinner/>
+          <p className="mt-4 text-gray-600">Searching for available trains...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {trains.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-xl shadow-md">
+              <div className="text-6xl mb-4">🚂</div>
+              <p className="text-xl text-gray-600 mb-2">No trains found</p>
+              <p className="text-gray-500">Try searching for a different route or date</p>
+            </div>
+          ) : (
+            trains.map(t=> (
+              <TrainCard key={t.number} train={t} onBook={setSelected} />
+            ))
+          )}
         </div>
       )}
 
